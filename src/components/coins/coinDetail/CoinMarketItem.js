@@ -16,6 +16,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0, 0.1)',
     borderColor: Colors.zircon,
     borderWidth: 1,
+    borderRadius: 8,
     padding: 16,
     margin: 8,
     alignItems: 'center',
