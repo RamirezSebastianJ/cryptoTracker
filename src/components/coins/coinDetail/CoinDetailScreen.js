@@ -6,15 +6,68 @@ import {
   SectionList,
   FlatList,
   StyleSheet,
+  Pressable,
+  Alert,
 } from 'react-native';
 import Colors from '../../../res/colors';
 import Http from '../../../libs/http';
+import Storage from '../../../libs/Storage';
 import CoinMarketItem from './CoinMarketItem';
 
 class CoinDetailScreen extends Component {
   state = {
     coin: {},
     markets: [],
+    isFavorite: false,
+  };
+
+  toggleFavorite = () => {
+    if (!this.state.isFavorite) {
+      this.addFavorite();
+    } else {
+      this.removeFavorite();
+    }
+  };
+
+  addFavorite = async () => {
+    const coin = JSON.stringify(this.state.coin);
+    const key = `favorite-${this.state.coin.id}`;
+    const stored = await Storage.instance.store(key, coin);
+    console.log('stored', stored);
+    if (stored) {
+      this.setState({isFavorite: true});
+    }
+  };
+
+  removeFavorite = async () => {
+    Alert.alert('Remove favorite', 'Are sure?', [
+      {
+        text: 'cancel',
+        onPress: () => {},
+        style: 'cancel',
+      },
+      {
+        text: 'Remove',
+        onPress: async () => {
+          const key = `favorite-${this.state.coin.id}`;
+          await Storage.instance.remove(key);
+          this.setState({isFavorite: false});
+        },
+        style: 'destructive',
+      },
+    ]);
+  };
+
+  getFavorite = async () => {
+    try {
+      const key = `favorite-${this.state.coin.id}`;
+      const favSTR = await Storage.instance.get(key);
+      if (favSTR !== null) {
+        this.setState({isFavorite: true});
+      }
+    } catch (error) {
+      console.log('Getfavorite error: ', error);
+    }
   };
 
   getSymbolIcon = name => {
@@ -53,19 +106,33 @@ class CoinDetailScreen extends Component {
     const {coin} = this.props.route.params;
     this.props.navigation.setOptions({title: coin.symbol});
     this.getMarkets(coin.id);
-    this.setState({coin});
+    this.setState({coin}, () => {
+      this.getFavorite();
+    });
   }
 
   render() {
-    const {coin, markets} = this.state;
+    const {coin, markets, isFavorite} = this.state;
     return (
       <View style={styles.container}>
         <View style={styles.subHeader}>
-          <Image
-            style={styles.imgIcon}
-            source={{uri: this.getSymbolIcon(coin.name)}}
-          />
-          <Text style={styles.nameCoinText}>{coin.name}</Text>
+          <View style={styles.coin}>
+            <Image
+              style={styles.imgIcon}
+              source={{uri: this.getSymbolIcon(coin.name)}}
+            />
+            <Text style={styles.nameCoinText}>{coin.name}</Text>
+          </View>
+          <Pressable
+            onPress={this.toggleFavorite}
+            style={[
+              styles.btnFavorite,
+              isFavorite ? styles.btnFavoriterRemove : styles.btnFavoriteAdd,
+            ]}>
+            <Text style={styles.btnFavoritetext}>
+              {isFavorite ? 'Remove favorite' : 'Add Favorite'}
+            </Text>
+          </Pressable>
         </View>
         <SectionList
           style={styles.section}
@@ -99,11 +166,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.charade,
   },
+  coin: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   subHeader: {
     backgroundColor: 'rgba(0,0,0, 0.2)',
     padding: 16,
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   imgIcon: {
@@ -114,7 +186,7 @@ const styles = StyleSheet.create({
   nameCoinText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: Colors.white,
   },
   section: {
     maxHeight: 220,
@@ -127,11 +199,11 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   itemText: {
-    color: '#fff',
+    color: Colors.white,
     fontSize: 14,
   },
   sectionText: {
-    color: '#fff',
+    color: Colors.white,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -140,11 +212,24 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
   },
   marketTitles: {
-    color: '#fff',
+    color: Colors.white,
     fontSize: 16,
     marginBottom: 8,
     textAlign: 'center',
     fontWeight: 'bold',
+  },
+  btnFavorite: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  btnFavoritetext: {
+    color: Colors.white,
+  },
+  btnFavoriteAdd: {
+    backgroundColor: Colors.picton,
+  },
+  btnFavoriterRemove: {
+    backgroundColor: Colors.carmine,
   },
 });
 
